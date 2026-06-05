@@ -10,6 +10,12 @@
     <p class="lede">Fill in everything and attach all three documents. The Submit button unlocks once the form is complete.</p>
 
     <form (submit)="onSubmit($event)" (focusin)="formTouched.set(true)" novalidate>
+      <div class="rule-banner" role="note">
+        ⏰ <strong>Important:</strong> Submit your details no earlier than
+        <strong>15 minutes</strong> and no later than <strong>1 minute</strong> before your
+        scheduled interview time (EST). Late submissions may mean the interview cannot go ahead.
+      </div>
+
       <div class="field">
         <label for="fullName">Full name <span class="req">*</span></label>
         <input id="fullName" type="text" autocomplete="name" appTrim
@@ -51,6 +57,24 @@
           @if (submitted() && mockTime() === '') { <p class="err">Required.</p> }
         </div>
       </div>
+
+      @if (windowState() === 'tooEarly') {
+        <div class="window-inline warn" role="alert" aria-live="polite">
+          ⏳ Too early to submit. Your window opens at {{ openTimeEST() }} EST — in
+          {{ countdown() }}. Submissions aren't accepted more than 15 minutes before your interview.
+        </div>
+      } @else if (windowState() === 'tooLate') {
+        <div class="window-inline warn" role="alert" aria-live="polite">
+          ⛔ Too late — the submission window closed at {{ closeTimeEST() }} EST (1 minute before
+          your interview). Submissions are no longer accepted; please contact the coordinator to
+          reschedule.
+        </div>
+      } @else if (windowState() === 'open') {
+        <div class="window-inline open" role="alert" aria-live="polite">
+          ✅ Your submission window is open — please submit now (closes at {{ closeTimeEST() }} EST,
+          in {{ countdown() }}).
+        </div>
+      }
 
       <fieldset class="group">
         <legend>GoToMyPC access</legend>
@@ -140,13 +164,6 @@
           </ul>
         </div>
       }
-
-      <div class="window-banner"
-           [class.open]="windowState() === 'open'"
-           [class.warn]="windowState() === 'tooEarly' || windowState() === 'tooLate'"
-           role="status" aria-live="polite">
-        {{ windowMessage() }}
-      </div>
 
       <button type="submit" class="btn" [disabled]="!canSubmit() || status() === 'sending'">
         {{ status() === 'sending' ? 'Sending…' : 'Submit details' }}

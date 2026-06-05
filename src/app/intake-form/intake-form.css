@@ -47,6 +47,41 @@ h1 { font-size: clamp(1.4rem, 5vw, 1.9rem); margin: 0.25rem 0 0.5rem; color: #0f
   color: #991b1b;
 }
 
+/* Static rule banner at the top of the form (informational). */
+.rule-banner {
+  background: #f1f5f9;
+  border: 1px solid #cbd5e1;
+  border-left: 4px solid #0f766e;
+  color: #1e293b;
+  border-radius: 8px;
+  padding: 0.8rem 1rem;
+  margin-bottom: 1.25rem;
+  font-size: 0.98rem;
+  line-height: 1.45;
+}
+
+/* Inline timing banner directly under the date/time fields. */
+.window-inline {
+  border-radius: 8px;
+  padding: 0.75rem 1rem;
+  margin: 0 0 1.1rem;
+  font-size: 0.98rem;
+  line-height: 1.45;
+  font-weight: 600;
+}
+.window-inline.warn {
+  background: #fef2f2;
+  border: 2px solid #dc2626;
+  color: #991b1b;
+}
+.window-inline.open {
+  background: #ecfdf5;
+  border: 1px solid #10b981;
+  color: #065f46;
+  font-weight: 500;
+  font-size: 0.92rem;
+}
+
 .field { margin-bottom: 1.1rem; }
 label { display: block; font-weight: 600; color: #1e293b; margin-bottom: 0.35rem; }
 .req { color: #dc2626; }
