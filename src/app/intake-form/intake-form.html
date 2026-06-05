@@ -6,13 +6,6 @@
   </section>
 } @else {
   <section class="card">
-    <div class="window-banner"
-         [class.open]="windowState() === 'open'"
-         [class.warn]="windowState() === 'tooEarly' || windowState() === 'tooLate'"
-         role="status" aria-live="polite">
-      {{ windowMessage() }}
-    </div>
-
     <h1>Mock interview — submit your details</h1>
     <p class="lede">Fill in everything and attach all three documents. The Submit button unlocks once the form is complete.</p>
 
@@ -142,6 +135,13 @@
           </ul>
         </div>
       }
+
+      <div class="window-banner"
+           [class.open]="windowState() === 'open'"
+           [class.warn]="windowState() === 'tooEarly' || windowState() === 'tooLate'"
+           role="status" aria-live="polite">
+        {{ windowMessage() }}
+      </div>
 
       <button type="submit" class="btn" [disabled]="!canSubmit() || status() === 'sending'">
         {{ status() === 'sending' ? 'Sending…' : 'Submit details' }}

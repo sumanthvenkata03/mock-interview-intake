@@ -28,7 +28,7 @@ const ALLOWED_TYPES = new Set([
 // ── Submission time window (authoritative). Must match src/app/utils/time-window.ts. ──
 const INTERVIEW_TZ = 'America/New_York';
 const WINDOW_OPEN_MIN = 15; // earliest: 15 minutes before
-const WINDOW_CLOSE_MIN = 5; // latest:    5 minutes before
+const WINDOW_CLOSE_MIN = 1; // latest:    1 minute before
 
 // Convert a wall-clock date/time in an IANA timezone to a UTC epoch (ms), DST-correct.
 function zonedWallTimeToUtcMs(year, month, day, hour, minute, timeZone) {
@@ -147,7 +147,7 @@ module.exports = async (req, res) => {
     if (mins < WINDOW_CLOSE_MIN) {
       res.status(400).json({
         ok: false,
-        error: 'Too late: submit no later than 5 minutes before your interview.',
+        error: 'Too late: submit no later than 1 minute before your interview.',
       });
       return;
     }

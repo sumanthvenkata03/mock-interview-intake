@@ -21,7 +21,7 @@ export function zonedWallTimeToUtcMs(
 
 export const INTERVIEW_TZ = 'America/New_York';
 export const WINDOW_OPEN_MIN = 15;  // earliest: 15 minutes before
-export const WINDOW_CLOSE_MIN = 5;  // latest:    5 minutes before
+export const WINDOW_CLOSE_MIN = 1;  // latest:    1 minute before
 
 // mockDate = "YYYY-MM-DD", mockTime = "HH:MM" (24h). Returns scheduled UTC ms, or null if invalid.
 export function scheduledUtcMs(mockDate: string, mockTime: string): number | null {

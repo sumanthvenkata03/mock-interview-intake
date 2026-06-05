@@ -171,11 +171,11 @@ export class IntakeForm implements OnDestroy {
       case 'tooEarly':
         return `Too early to submit. Your window opens at ${this.openTimeEST()} EST — in ${this.countdown()}. Submissions are not accepted more than 15 minutes before your interview.`;
       case 'open':
-        return `✅ Your submission window is OPEN. Please submit now — it closes at ${this.closeTimeEST()} EST (in ${this.countdown()}), 5 minutes before your interview.`;
+        return `✅ Your submission window is OPEN. Please submit now — it closes at ${this.closeTimeEST()} EST (in ${this.countdown()}), 1 minute before your interview.`;
       case 'tooLate':
-        return `❌ The submission window has closed (it closed at ${this.closeTimeEST()} EST, 5 minutes before your interview). Submissions are no longer accepted — please contact the coordinator to reschedule.`;
+        return `❌ The submission window has closed (it closed at ${this.closeTimeEST()} EST, 1 minute before your interview). Submissions are no longer accepted — please contact the coordinator to reschedule.`;
       default:
-        return 'Pick your interview date and time to see your submission window (it opens 15 minutes before and closes 5 minutes before your interview).';
+        return 'Pick your interview date and time to see your submission window (it opens 15 minutes before and closes 1 minute before your interview).';
     }
   });
 
