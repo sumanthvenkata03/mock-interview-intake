@@ -1,7 +1,14 @@
-import { Component, computed, inject, signal, WritableSignal } from '@angular/core';
+import { Component, computed, inject, OnDestroy, signal, WritableSignal } from '@angular/core';
 import { SubmissionService } from '../submission.service';
 import { TrimDirective } from '../directives/trim.directive';
 import { isValidEmail } from '../validators/email-validator';
+import {
+  scheduledUtcMs,
+  windowStateFor,
+  WINDOW_OPEN_MIN,
+  WINDOW_CLOSE_MIN,
+  INTERVIEW_TZ,
+} from '../utils/time-window';
 
 const MAX_BYTES = 2 * 1024 * 1024; // 2 MB per file
 const MAX_TOTAL = 4 * 1024 * 1024; // 4 MB combined (Vercel request-body limit)
@@ -21,8 +28,20 @@ type Status = 'idle' | 'sending' | 'success' | 'error';
   templateUrl: './intake-form.html',
   styleUrl: './intake-form.css',
 })
-export class IntakeForm {
+export class IntakeForm implements OnDestroy {
   private readonly submission = inject(SubmissionService);
+
+  // Ticking clock so the submission-window state updates live.
+  readonly now = signal(Date.now());
+  private readonly timer: ReturnType<typeof setInterval>;
+
+  constructor() {
+    this.timer = setInterval(() => this.now.set(Date.now()), 1000);
+  }
+
+  ngOnDestroy(): void {
+    clearInterval(this.timer);
+  }
 
   // Text fields
   readonly fullName = signal('');
@@ -107,7 +126,60 @@ export class IntakeForm {
     return m;
   });
 
-  readonly canSubmit = computed(() => this.missing().length === 0);
+  // ── Submission time window (DST-correct, authoritative copy lives on the server) ──
+  readonly scheduledMs = computed(() => scheduledUtcMs(this.mockDate(), this.mockTime()));
+  readonly windowState = computed(() => windowStateFor(this.scheduledMs(), this.now()));
+  readonly withinWindow = computed(() => this.windowState() === 'open');
+
+  private readonly fmtEST = new Intl.DateTimeFormat('en-US', {
+    timeZone: INTERVIEW_TZ,
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+
+  readonly windowOpenMs = computed(() => {
+    const s = this.scheduledMs();
+    return s == null ? null : s - WINDOW_OPEN_MIN * 60000;
+  });
+  readonly windowCloseMs = computed(() => {
+    const s = this.scheduledMs();
+    return s == null ? null : s - WINDOW_CLOSE_MIN * 60000;
+  });
+  readonly openTimeEST = computed(() => {
+    const m = this.windowOpenMs();
+    return m == null ? '' : this.fmtEST.format(new Date(m));
+  });
+  readonly closeTimeEST = computed(() => {
+    const m = this.windowCloseMs();
+    return m == null ? '' : this.fmtEST.format(new Date(m));
+  });
+
+  // Live mm:ss countdown to the relevant boundary (window open when too early, close when open).
+  readonly countdown = computed(() => {
+    const state = this.windowState();
+    const targetMs =
+      state === 'tooEarly' ? this.windowOpenMs() : state === 'open' ? this.windowCloseMs() : null;
+    if (targetMs == null) return '';
+    const total = Math.max(0, Math.floor((targetMs - this.now()) / 1000));
+    const mm = Math.floor(total / 60);
+    const ss = total % 60;
+    return `${mm}:${String(ss).padStart(2, '0')}`;
+  });
+
+  readonly windowMessage = computed(() => {
+    switch (this.windowState()) {
+      case 'tooEarly':
+        return `Too early to submit. Your window opens at ${this.openTimeEST()} EST — in ${this.countdown()}. Submissions are not accepted more than 15 minutes before your interview.`;
+      case 'open':
+        return `✅ Your submission window is OPEN. Please submit now — it closes at ${this.closeTimeEST()} EST (in ${this.countdown()}), 5 minutes before your interview.`;
+      case 'tooLate':
+        return `❌ The submission window has closed (it closed at ${this.closeTimeEST()} EST, 5 minutes before your interview). Submissions are no longer accepted — please contact the coordinator to reschedule.`;
+      default:
+        return 'Pick your interview date and time to see your submission window (it opens 15 minutes before and closes 5 minutes before your interview).';
+    }
+  });
+
+  readonly canSubmit = computed(() => this.missing().length === 0 && this.withinWindow());
 
   private pushFileMissing(m: string[], f: File | null, label: string): void {
     if (!f) {
@@ -165,6 +237,14 @@ export class IntakeForm {
     ev.preventDefault();
     this.submitted.set(true);
     this.formTouched.set(true);
+
+    // Guard: never submit outside the window — surface the same timing message.
+    const state = this.windowState();
+    if (state === 'tooEarly' || state === 'tooLate') {
+      this.status.set('error');
+      this.statusMessage.set(this.windowMessage());
+      return;
+    }
     if (!this.canSubmit()) return;
 
     this.status.set('sending');

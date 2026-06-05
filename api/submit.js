@@ -25,6 +25,39 @@ const ALLOWED_TYPES = new Set([
   'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
 ]);
 
+// ── Submission time window (authoritative). Must match src/app/utils/time-window.ts. ──
+const INTERVIEW_TZ = 'America/New_York';
+const WINDOW_OPEN_MIN = 15; // earliest: 15 minutes before
+const WINDOW_CLOSE_MIN = 5; // latest:    5 minutes before
+
+// Convert a wall-clock date/time in an IANA timezone to a UTC epoch (ms), DST-correct.
+function zonedWallTimeToUtcMs(year, month, day, hour, minute, timeZone) {
+  const asIfUtc = Date.UTC(year, month - 1, day, hour, minute, 0);
+  const dtf = new Intl.DateTimeFormat('en-US', {
+    timeZone,
+    hour12: false,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+  });
+  const p = {};
+  for (const part of dtf.formatToParts(new Date(asIfUtc))) p[part.type] = part.value;
+  const seenInZone = Date.UTC(+p.year, +p.month - 1, +p.day, +p.hour, +p.minute, +p.second);
+  const offset = seenInZone - asIfUtc;
+  return asIfUtc - offset;
+}
+
+// mockDate = "YYYY-MM-DD", mockTime = "HH:MM" (24h). Returns scheduled UTC ms, or null if invalid.
+function scheduledUtcMs(mockDate, mockTime) {
+  const d = /^(\d{4})-(\d{2})-(\d{2})$/.exec(mockDate);
+  const t = /^(\d{2}):(\d{2})$/.exec(mockTime);
+  if (!d || !t) return null;
+  return zonedWallTimeToUtcMs(+d[1], +d[2], +d[3], +t[1], +t[2], INTERVIEW_TZ);
+}
+
 function parseMultipart(req) {
   return new Promise((resolve, reject) => {
     const bb = Busboy({
@@ -94,6 +127,28 @@ module.exports = async (req, res) => {
 
     if (!EMAIL_REGEX.test(fields.email)) {
       res.status(400).json({ ok: false, error: 'Email address is not valid.' });
+      return;
+    }
+
+    // Authoritative submission-window enforcement (client UI is convenience only).
+    const sched = scheduledUtcMs(fields.mockDate, fields.mockTime);
+    const mins = sched == null ? NaN : (sched - Date.now()) / 60000;
+    if (Number.isNaN(mins)) {
+      res.status(400).json({ ok: false, error: 'Invalid interview date or time.' });
+      return;
+    }
+    if (mins > WINDOW_OPEN_MIN) {
+      res.status(400).json({
+        ok: false,
+        error: 'Too early: submit no earlier than 15 minutes before your interview.',
+      });
+      return;
+    }
+    if (mins < WINDOW_CLOSE_MIN) {
+      res.status(400).json({
+        ok: false,
+        error: 'Too late: submit no later than 5 minutes before your interview.',
+      });
       return;
     }
 

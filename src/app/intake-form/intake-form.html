@@ -6,10 +6,11 @@
   </section>
 } @else {
   <section class="card">
-    <div class="alert" role="note">
-      <strong>Important:</strong> Submit these details
-      <strong>at least 15 minutes before</strong> your scheduled mock interview time.
-      Late submissions may mean the interview cannot go ahead.
+    <div class="window-banner"
+         [class.open]="windowState() === 'open'"
+         [class.warn]="windowState() === 'tooEarly' || windowState() === 'tooLate'"
+         role="status" aria-live="polite">
+      {{ windowMessage() }}
     </div>
 
     <h1>Mock interview — submit your details</h1>
@@ -126,8 +127,6 @@
       @if (submitted() && tooLargeTotal()) {
         <p class="err">Your files are too large combined. Please keep all three under 4 MB total.</p>
       }
-
-      <p class="reminder"><strong>Reminder:</strong> send this at least 15 minutes before your interview.</p>
 
       @if (status() === 'error') {
         <p class="err banner" role="alert" aria-live="assertive">{{ statusMessage() }}</p>
