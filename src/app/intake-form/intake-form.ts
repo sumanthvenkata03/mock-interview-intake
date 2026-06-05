@@ -1,7 +1,8 @@
 import { Component, computed, inject, signal, WritableSignal } from '@angular/core';
 import { SubmissionService } from '../submission.service';
+import { TrimDirective } from '../directives/trim.directive';
+import { isValidEmail } from '../validators/email-validator';
 
-const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const MAX_BYTES = 2 * 1024 * 1024; // 2 MB per file
 const MAX_TOTAL = 4 * 1024 * 1024; // 4 MB combined (Vercel request-body limit)
 const ALLOWED_TYPES = [
@@ -16,7 +17,7 @@ type Status = 'idle' | 'sending' | 'success' | 'error';
 
 @Component({
   selector: 'app-intake-form',
-  imports: [],
+  imports: [TrimDirective],
   templateUrl: './intake-form.html',
   styleUrl: './intake-form.css',
 })
@@ -47,8 +48,8 @@ export class IntakeForm {
   readonly statusMessage = signal('');
 
   // Derived validation
-  readonly emailValid = computed(() => EMAIL_RE.test(this.email().trim()));
-  readonly gpcEmailValid = computed(() => EMAIL_RE.test(this.gpcEmail().trim()));
+  readonly emailValid = computed(() => isValidEmail(this.email()));
+  readonly gpcEmailValid = computed(() => isValidEmail(this.gpcEmail()));
 
   readonly resumeError = computed(() => this.fileError(this.resume()));
   readonly selfIntroError = computed(() => this.fileError(this.selfIntro()));
@@ -175,7 +176,7 @@ export class IntakeForm {
     fd.append('mockDate', this.mockDate());
     fd.append('mockTime', this.mockTime());
     fd.append('gotomypcEmail', this.gpcEmail().trim());
-    fd.append('gotomypcPassword', this.gpcPassword());
+    fd.append('gotomypcPassword', this.gpcPassword().trim());
     fd.append('gotomypcAccessCode', this.gpcAccessCode().trim());
     fd.append('notes', this.notes().trim());
     fd.append('subject', this.subject());

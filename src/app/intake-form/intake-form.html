@@ -18,7 +18,7 @@
     <form (submit)="onSubmit($event)" (focusin)="formTouched.set(true)" novalidate>
       <div class="field">
         <label for="fullName">Full name <span class="req">*</span></label>
-        <input id="fullName" type="text" autocomplete="name"
+        <input id="fullName" type="text" autocomplete="name" appTrim
                [value]="fullName()" (input)="setText(fullName, $event)"
                [attr.aria-invalid]="submitted() && fullName().trim() === ''"
                aria-describedby="fullName-err" />
@@ -29,7 +29,7 @@
 
       <div class="field">
         <label for="email">Your email <span class="req">*</span></label>
-        <input id="email" type="email" autocomplete="email"
+        <input id="email" type="email" autocomplete="email" appTrim
                [value]="email()" (input)="setText(email, $event)"
                [attr.aria-invalid]="submitted() && !emailValid()"
                aria-describedby="email-err" />
@@ -61,7 +61,7 @@
         <legend>GoToMyPC access</legend>
         <div class="field">
           <label for="gpcEmail">Account email <span class="req">*</span></label>
-          <input id="gpcEmail" type="email" autocomplete="off"
+          <input id="gpcEmail" type="email" autocomplete="off" appTrim
                  [value]="gpcEmail()" (input)="setText(gpcEmail, $event)"
                  [attr.aria-invalid]="submitted() && !gpcEmailValid()" />
           @if (submitted() && !gpcEmailValid()) { <p class="err">Enter a valid email address.</p> }
@@ -69,7 +69,7 @@
         <div class="field">
           <label for="gpcPassword">Password <span class="req">*</span></label>
           <div class="pw">
-            <input id="gpcPassword" autocomplete="off"
+            <input id="gpcPassword" autocomplete="off" appTrim
                    [type]="showPassword() ? 'text' : 'password'"
                    [value]="gpcPassword()" (input)="setText(gpcPassword, $event)"
                    [attr.aria-invalid]="submitted() && gpcPassword().trim() === ''" />
@@ -82,7 +82,7 @@
         </div>
         <div class="field">
           <label for="gpcCode">Access code <span class="req">*</span></label>
-          <input id="gpcCode" type="text" autocomplete="off"
+          <input id="gpcCode" type="text" autocomplete="off" appTrim
                  [value]="gpcAccessCode()" (input)="setText(gpcAccessCode, $event)"
                  [attr.aria-invalid]="submitted() && gpcAccessCode().trim() === ''" />
           @if (submitted() && gpcAccessCode().trim() === '') { <p class="err">Required.</p> }
@@ -120,7 +120,7 @@
 
       <div class="field">
         <label for="notes">Notes <span class="optional">(optional)</span></label>
-        <textarea id="notes" rows="3" [value]="notes()" (input)="setText(notes, $event)"></textarea>
+        <textarea id="notes" rows="3" appTrim [value]="notes()" (input)="setText(notes, $event)"></textarea>
       </div>
 
       @if (submitted() && tooLargeTotal()) {

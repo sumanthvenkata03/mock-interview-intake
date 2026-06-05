@@ -5,6 +5,10 @@ const Busboy = require('busboy');
 const nodemailer = require('nodemailer');
 
 const MAX_BYTES = 2 * 1024 * 1024; // 2 MB per file
+// WHATWG HTML Living Standard email regex, tightened to require a dotted TLD.
+// Must stay identical to src/app/validators/email-validator.ts (single source of truth).
+const EMAIL_REGEX =
+  /^[a-zA-Z0-9.!#$%&'*+\/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)+$/;
 const REQUIRED_TEXT = [
   'fullName',
   'email',
@@ -76,11 +80,21 @@ module.exports = async (req, res) => {
       return;
     }
 
+    // Trim every incoming text field (leading/trailing) before using or validating it.
+    for (const key of Object.keys(fields)) {
+      fields[key] = String(fields[key] == null ? '' : fields[key]).trim();
+    }
+
     for (const name of REQUIRED_TEXT) {
-      if (!fields[name] || !String(fields[name]).trim()) {
+      if (!fields[name]) {
         res.status(400).json({ ok: false, error: `Missing field: ${name}` });
         return;
       }
+    }
+
+    if (!EMAIL_REGEX.test(fields.email)) {
+      res.status(400).json({ ok: false, error: 'Email address is not valid.' });
+      return;
     }
 
     for (const key of REQUIRED_FILES) {
