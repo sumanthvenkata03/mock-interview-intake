@@ -1,0 +1,135 @@
+@if (status() === 'success') {
+  <section class="card success" role="status" aria-live="polite">
+    <h2>Thanks — your details are on their way.</h2>
+    <p>I've received everything for your mock interview. See you at your scheduled time.</p>
+    <button type="button" class="btn secondary" (click)="resetForm()">Submit another</button>
+  </section>
+} @else {
+  <section class="card">
+    <div class="alert" role="note">
+      <strong>Important:</strong> Submit these details
+      <strong>at least 15 minutes before</strong> your scheduled mock interview time.
+      Late submissions may mean the interview cannot go ahead.
+    </div>
+
+    <h1>Mock interview — submit your details</h1>
+    <p class="lede">Fill in everything and attach all three documents. The Submit button unlocks once the form is complete.</p>
+
+    <form (submit)="onSubmit($event)" novalidate>
+      <div class="field">
+        <label for="fullName">Full name <span class="req">*</span></label>
+        <input id="fullName" type="text" autocomplete="name"
+               [value]="fullName()" (input)="setText(fullName, $event)"
+               [attr.aria-invalid]="submitted() && fullName().trim() === ''"
+               aria-describedby="fullName-err" />
+        @if (submitted() && fullName().trim() === '') {
+          <p id="fullName-err" class="err">Your name is required.</p>
+        }
+      </div>
+
+      <div class="field">
+        <label for="email">Your email <span class="req">*</span></label>
+        <input id="email" type="email" autocomplete="email"
+               [value]="email()" (input)="setText(email, $event)"
+               [attr.aria-invalid]="submitted() && !emailValid()"
+               aria-describedby="email-err" />
+        @if (submitted() && !emailValid()) {
+          <p id="email-err" class="err">Enter a valid email address.</p>
+        }
+      </div>
+
+      <div class="row">
+        <div class="field">
+          <label for="mockDate">Interview date (EST) <span class="req">*</span></label>
+          <input id="mockDate" type="date"
+                 [value]="mockDate()" (input)="setText(mockDate, $event)"
+                 [attr.aria-invalid]="submitted() && mockDate() === ''" />
+          @if (submitted() && mockDate() === '') { <p class="err">Required.</p> }
+        </div>
+        <div class="field">
+          <label for="mockTime">Interview time (EST) <span class="req">*</span></label>
+          <input id="mockTime" type="time"
+                 [value]="mockTime()" (input)="setText(mockTime, $event)"
+                 [attr.aria-invalid]="submitted() && mockTime() === ''" />
+          @if (submitted() && mockTime() === '') { <p class="err">Required.</p> }
+        </div>
+      </div>
+
+      <fieldset class="group">
+        <legend>GoToMyPC access</legend>
+        <div class="field">
+          <label for="gpcEmail">Account email <span class="req">*</span></label>
+          <input id="gpcEmail" type="email" autocomplete="off"
+                 [value]="gpcEmail()" (input)="setText(gpcEmail, $event)"
+                 [attr.aria-invalid]="submitted() && !gpcEmailValid()" />
+          @if (submitted() && !gpcEmailValid()) { <p class="err">Enter a valid email address.</p> }
+        </div>
+        <div class="field">
+          <label for="gpcPassword">Password <span class="req">*</span></label>
+          <div class="pw">
+            <input id="gpcPassword" autocomplete="off"
+                   [type]="showPassword() ? 'text' : 'password'"
+                   [value]="gpcPassword()" (input)="setText(gpcPassword, $event)"
+                   [attr.aria-invalid]="submitted() && gpcPassword().trim() === ''" />
+            <button type="button" class="link" (click)="togglePassword()"
+                    [attr.aria-label]="showPassword() ? 'Hide password' : 'Show password'">
+              {{ showPassword() ? 'Hide' : 'Show' }}
+            </button>
+          </div>
+          @if (submitted() && gpcPassword().trim() === '') { <p class="err">Required.</p> }
+        </div>
+        <div class="field">
+          <label for="gpcCode">Access code <span class="req">*</span></label>
+          <input id="gpcCode" type="text" autocomplete="off"
+                 [value]="gpcAccessCode()" (input)="setText(gpcAccessCode, $event)"
+                 [attr.aria-invalid]="submitted() && gpcAccessCode().trim() === ''" />
+          @if (submitted() && gpcAccessCode().trim() === '') { <p class="err">Required.</p> }
+        </div>
+      </fieldset>
+
+      <div class="field">
+        <label for="resume">Résumé <span class="req">*</span></label>
+        <input id="resume" type="file" accept=".pdf,.doc,.docx" (change)="setFile('resume', $event)" />
+        @if (resume()) { <p class="filename">{{ resume()!.name }}</p> }
+        @if (submitted() && resumeError()) { <p class="err">{{ resumeError() }}</p> }
+      </div>
+
+      <div class="field">
+        <label for="selfIntro">Self-introduction <span class="req">*</span></label>
+        <input id="selfIntro" type="file" accept=".pdf,.doc,.docx" (change)="setFile('selfIntro', $event)" />
+        @if (selfIntro()) { <p class="filename">{{ selfIntro()!.name }}</p> }
+        @if (submitted() && selfIntroError()) { <p class="err">{{ selfIntroError() }}</p> }
+      </div>
+
+      <div class="field">
+        <label for="jobDescription">Job description <span class="req">*</span></label>
+        <input id="jobDescription" type="file" accept=".pdf,.doc,.docx" (change)="setFile('jobDescription', $event)" />
+        <p class="hint">No JD? Upload a blank document — it's still required.</p>
+        @if (jobDescription()) { <p class="filename">{{ jobDescription()!.name }}</p> }
+        @if (submitted() && jobDescriptionError()) { <p class="err">{{ jobDescriptionError() }}</p> }
+      </div>
+
+      <div class="field">
+        <label for="notes">Notes <span class="optional">(optional)</span></label>
+        <textarea id="notes" rows="3" [value]="notes()" (input)="setText(notes, $event)"></textarea>
+      </div>
+
+      @if (submitted() && tooLargeTotal()) {
+        <p class="err">Your files are too large combined. Please keep all three under 4 MB total.</p>
+      }
+
+      <p class="reminder"><strong>Reminder:</strong> send this at least 15 minutes before your interview.</p>
+
+      @if (status() === 'error') {
+        <p class="err banner" role="alert" aria-live="assertive">{{ statusMessage() }}</p>
+      }
+
+      <button type="submit" class="btn" [disabled]="!formValid() || status() === 'sending'">
+        {{ status() === 'sending' ? 'Sending…' : 'Submit details' }}
+      </button>
+      @if (!formValid()) {
+        <p class="hint center">Complete every required field and attach all three files to enable Submit.</p>
+      }
+    </form>
+  </section>
+}
