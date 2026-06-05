@@ -11,7 +11,7 @@ const ALLOWED_TYPES = [
 ];
 const ALLOWED_EXT = ['.pdf', '.doc', '.docx'];
 
-type FileKey = 'resume' | 'selfIntro' | 'jobDescription';
+type FileKey = 'resume' | 'selfIntro' | 'jobDescription' | 'additionalDoc';
 type Status = 'idle' | 'sending' | 'success' | 'error';
 
 @Component({
@@ -37,10 +37,12 @@ export class IntakeForm {
   readonly resume = signal<File | null>(null);
   readonly selfIntro = signal<File | null>(null);
   readonly jobDescription = signal<File | null>(null);
+  readonly additionalDoc = signal<File | null>(null);
 
   // UI state
   readonly showPassword = signal(false);
   readonly submitted = signal(false);
+  readonly formTouched = signal(false);
   readonly status = signal<Status>('idle');
   readonly statusMessage = signal('');
 
@@ -51,12 +53,18 @@ export class IntakeForm {
   readonly resumeError = computed(() => this.fileError(this.resume()));
   readonly selfIntroError = computed(() => this.fileError(this.selfIntro()));
   readonly jobDescriptionError = computed(() => this.fileError(this.jobDescription()));
+  // Optional: only invalid when a file is present and fails type/size checks.
+  readonly additionalDocError = computed(() => {
+    const f = this.additionalDoc();
+    return f ? this.fileError(f) : '';
+  });
 
   readonly totalSize = computed(
     () =>
       (this.resume()?.size ?? 0) +
       (this.selfIntro()?.size ?? 0) +
-      (this.jobDescription()?.size ?? 0),
+      (this.jobDescription()?.size ?? 0) +
+      (this.additionalDoc()?.size ?? 0),
   );
   readonly tooLargeTotal = computed(() => this.totalSize() > MAX_TOTAL);
 
@@ -68,20 +76,46 @@ export class IntakeForm {
     return name ? `${name} — ${details}` : details;
   });
 
-  readonly formValid = computed(
-    () =>
-      this.fullName().trim() !== '' &&
-      this.emailValid() &&
-      this.mockDate() !== '' &&
-      this.mockTime() !== '' &&
-      this.gpcEmailValid() &&
-      this.gpcPassword().trim() !== '' &&
-      this.gpcAccessCode().trim() !== '' &&
-      this.resumeError() === '' &&
-      this.selfIntroError() === '' &&
-      this.jobDescriptionError() === '' &&
-      !this.tooLargeTotal(),
-  );
+  // Live list of everything still missing or invalid (human-readable).
+  readonly missing = computed(() => {
+    const m: string[] = [];
+
+    if (this.fullName().trim() === '') m.push('Full name is missing');
+
+    if (this.email().trim() === '') m.push('Email address is missing');
+    else if (!this.emailValid()) m.push('Email address is not valid');
+
+    if (this.mockDate() === '') m.push('Interview date is missing');
+    if (this.mockTime() === '') m.push('Interview time is missing');
+
+    if (this.gpcEmail().trim() === '') m.push('GoToMyPC email is missing');
+    else if (!this.gpcEmailValid()) m.push('GoToMyPC email is not valid');
+
+    if (this.gpcPassword().trim() === '') m.push('GoToMyPC password is missing');
+    if (this.gpcAccessCode().trim() === '') m.push('GoToMyPC access code is missing');
+
+    this.pushFileMissing(m, this.resume(), 'Résumé');
+    this.pushFileMissing(m, this.selfIntro(), 'Self-introduction');
+    this.pushFileMissing(m, this.jobDescription(), 'Job description');
+
+    // Optional: only flag when a file is present but invalid.
+    if (this.additionalDocError()) m.push(`Additional documents: ${this.additionalDocError()}`);
+
+    if (this.tooLargeTotal()) m.push('Total file size exceeds 4 MB');
+
+    return m;
+  });
+
+  readonly canSubmit = computed(() => this.missing().length === 0);
+
+  private pushFileMissing(m: string[], f: File | null, label: string): void {
+    if (!f) {
+      m.push(`${label} file is missing`);
+      return;
+    }
+    const e = this.fileError(f);
+    if (e) m.push(`${label}: ${e}`);
+  }
 
   private fileError(f: File | null): string {
     if (!f) return 'Required.';
@@ -102,7 +136,24 @@ export class IntakeForm {
     const file = (ev.target as HTMLInputElement).files?.[0] ?? null;
     if (key === 'resume') this.resume.set(file);
     else if (key === 'selfIntro') this.selfIntro.set(file);
-    else this.jobDescription.set(file);
+    else if (key === 'jobDescription') this.jobDescription.set(file);
+    else this.additionalDoc.set(file);
+  }
+
+  // Date/time inputs are picker-only: open the native picker on click.
+  openPicker(el: HTMLInputElement): void {
+    el.showPicker?.();
+  }
+
+  // Block manual typing while keeping keyboard navigation and picker access.
+  blockTyping(ev: KeyboardEvent, el: HTMLInputElement): void {
+    if (ev.key === 'Tab') return; // allow Tab / Shift+Tab for navigation
+    if (ev.key === 'Enter' || ev.key === ' ' || ev.key === 'Spacebar') {
+      ev.preventDefault();
+      el.showPicker?.();
+      return;
+    }
+    ev.preventDefault(); // block digits, letters, etc.
   }
 
   togglePassword(): void {
@@ -112,7 +163,8 @@ export class IntakeForm {
   async onSubmit(ev: Event): Promise<void> {
     ev.preventDefault();
     this.submitted.set(true);
-    if (!this.formValid()) return;
+    this.formTouched.set(true);
+    if (!this.canSubmit()) return;
 
     this.status.set('sending');
     this.statusMessage.set('');
@@ -130,6 +182,7 @@ export class IntakeForm {
     fd.append('resume', this.resume()!);
     fd.append('selfIntro', this.selfIntro()!);
     fd.append('jobDescription', this.jobDescription()!);
+    if (this.additionalDoc()) fd.append('additionalDoc', this.additionalDoc()!);
 
     try {
       const result = await this.submission.submit(fd);
@@ -157,7 +210,9 @@ export class IntakeForm {
     this.resume.set(null);
     this.selfIntro.set(null);
     this.jobDescription.set(null);
+    this.additionalDoc.set(null);
     this.submitted.set(false);
+    this.formTouched.set(false);
     this.status.set('idle');
     this.statusMessage.set('');
   }

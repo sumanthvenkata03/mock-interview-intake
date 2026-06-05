@@ -15,7 +15,7 @@
     <h1>Mock interview — submit your details</h1>
     <p class="lede">Fill in everything and attach all three documents. The Submit button unlocks once the form is complete.</p>
 
-    <form (submit)="onSubmit($event)" novalidate>
+    <form (submit)="onSubmit($event)" (focusin)="formTouched.set(true)" novalidate>
       <div class="field">
         <label for="fullName">Full name <span class="req">*</span></label>
         <input id="fullName" type="text" autocomplete="name"
@@ -41,15 +41,17 @@
       <div class="row">
         <div class="field">
           <label for="mockDate">Interview date (EST) <span class="req">*</span></label>
-          <input id="mockDate" type="date"
+          <input id="mockDate" type="date" class="picker" #dateInput inputmode="none"
                  [value]="mockDate()" (input)="setText(mockDate, $event)"
+                 (click)="openPicker(dateInput)" (keydown)="blockTyping($event, dateInput)"
                  [attr.aria-invalid]="submitted() && mockDate() === ''" />
           @if (submitted() && mockDate() === '') { <p class="err">Required.</p> }
         </div>
         <div class="field">
           <label for="mockTime">Interview time (EST) <span class="req">*</span></label>
-          <input id="mockTime" type="time"
+          <input id="mockTime" type="time" class="picker" #timeInput inputmode="none"
                  [value]="mockTime()" (input)="setText(mockTime, $event)"
+                 (click)="openPicker(timeInput)" (keydown)="blockTyping($event, timeInput)"
                  [attr.aria-invalid]="submitted() && mockTime() === ''" />
           @if (submitted() && mockTime() === '') { <p class="err">Required.</p> }
         </div>
@@ -110,6 +112,13 @@
       </div>
 
       <div class="field">
+        <label for="additionalDoc">Additional documents <span class="optional">(optional)</span></label>
+        <input id="additionalDoc" type="file" accept=".pdf,.doc,.docx" (change)="setFile('additionalDoc', $event)" />
+        @if (additionalDoc()) { <p class="filename">{{ additionalDoc()!.name }}</p> }
+        @if (additionalDocError()) { <p class="err">{{ additionalDocError() }}</p> }
+      </div>
+
+      <div class="field">
         <label for="notes">Notes <span class="optional">(optional)</span></label>
         <textarea id="notes" rows="3" [value]="notes()" (input)="setText(notes, $event)"></textarea>
       </div>
@@ -124,12 +133,20 @@
         <p class="err banner" role="alert" aria-live="assertive">{{ statusMessage() }}</p>
       }
 
-      <button type="submit" class="btn" [disabled]="!formValid() || status() === 'sending'">
+      @if (formTouched() && missing().length > 0) {
+        <div class="missing" role="alert" aria-live="polite">
+          <p class="missing-head">Before you submit:</p>
+          <ul>
+            @for (item of missing(); track item) {
+              <li>{{ item }}</li>
+            }
+          </ul>
+        </div>
+      }
+
+      <button type="submit" class="btn" [disabled]="!canSubmit() || status() === 'sending'">
         {{ status() === 'sending' ? 'Sending…' : 'Submit details' }}
       </button>
-      @if (!formValid()) {
-        <p class="hint center">Complete every required field and attach all three files to enable Submit.</p>
-      }
     </form>
   </section>
 }

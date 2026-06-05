@@ -107,6 +107,10 @@ module.exports = async (req, res) => {
       auth: { user: process.env.GMAIL_USER, pass: process.env.GMAIL_APP_PASSWORD },
     });
 
+    // Optional extra attachment — only included when one was uploaded.
+    const extra = files.additionalDoc;
+    const hasExtra = !!(extra && extra.content && extra.content.length > 0);
+
     const html = `
       <h2>New mock interview submission</h2>
       <table cellpadding="6" style="border-collapse:collapse;font-family:sans-serif">
@@ -118,7 +122,15 @@ module.exports = async (req, res) => {
         <tr><td><b>GoToMyPC access code</b></td><td>${escapeHtml(fields.gotomypcAccessCode)}</td></tr>
         <tr><td valign="top"><b>Notes</b></td><td>${escapeHtml(fields.notes) || '—'}</td></tr>
       </table>
-      <p style="color:#888">Résumé, self-introduction, and job description are attached.</p>`;
+      <p style="color:#888">Résumé, self-introduction, and job description${hasExtra ? ', and an additional document' : ''} are attached.</p>`;
+
+    const attachments = REQUIRED_FILES.map((key) => ({
+      filename: files[key].filename,
+      content: files[key].content,
+    }));
+    if (hasExtra) {
+      attachments.push({ filename: extra.filename, content: extra.content });
+    }
 
     await transporter.sendMail({
       from: process.env.GMAIL_USER,
@@ -126,10 +138,7 @@ module.exports = async (req, res) => {
       replyTo: fields.email,
       subject: fields.subject || 'Mock interview details',
       html,
-      attachments: REQUIRED_FILES.map((key) => ({
-        filename: files[key].filename,
-        content: files[key].content,
-      })),
+      attachments,
     });
 
     res.status(200).json({ ok: true });
