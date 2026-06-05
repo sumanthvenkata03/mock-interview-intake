@@ -61,9 +61,11 @@ export class IntakeForm {
   readonly tooLargeTotal = computed(() => this.totalSize() > MAX_TOTAL);
 
   readonly subject = computed(() => {
+    const name = this.fullName().trim();
     const d = this.mockDate();
     const t = this.mockTime();
-    return d && t ? `Mock interview details — ${d} ${t} EST` : 'Mock interview details';
+    const details = d && t ? `Mock interview details — ${d} ${t} EST` : 'Mock interview details';
+    return name ? `${name} — ${details}` : details;
   });
 
   readonly formValid = computed(
