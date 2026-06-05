@@ -63,12 +63,28 @@ export class IntakeForm implements OnDestroy {
   readonly showPassword = signal(false);
   readonly submitted = signal(false);
   readonly formTouched = signal(false);
+  readonly emailTouched = signal(false);
+  readonly gpcEmailTouched = signal(false);
   readonly status = signal<Status>('idle');
   readonly statusMessage = signal('');
 
   // Derived validation
   readonly emailValid = computed(() => isValidEmail(this.email()));
   readonly gpcEmailValid = computed(() => isValidEmail(this.gpcEmail()));
+
+  // Inline email errors (shown only after the field is touched).
+  readonly emailError = computed(() => {
+    if (!this.emailTouched()) return '';
+    const v = this.email().trim();
+    if (!v) return 'Email address is required';
+    return isValidEmail(v) ? '' : 'Enter a valid email address (e.g. name@example.com)';
+  });
+  readonly gpcEmailError = computed(() => {
+    if (!this.gpcEmailTouched()) return '';
+    const v = this.gpcEmail().trim();
+    if (!v) return 'GoToMyPC email is required';
+    return isValidEmail(v) ? '' : 'Enter a valid GoToMyPC email (e.g. name@example.com)';
+  });
 
   readonly resumeError = computed(() => this.fileError(this.resume()));
   readonly selfIntroError = computed(() => this.fileError(this.selfIntro()));
@@ -102,14 +118,10 @@ export class IntakeForm implements OnDestroy {
 
     if (this.fullName().trim() === '') m.push('Full name is missing');
 
-    if (this.email().trim() === '') m.push('Email address is missing');
-    else if (!this.emailValid()) m.push('Email address is not valid');
+    // Email validity is shown inline under each field, not in this checklist.
 
     if (this.mockDate() === '') m.push('Interview date is missing');
     if (this.mockTime() === '') m.push('Interview time is missing');
-
-    if (this.gpcEmail().trim() === '') m.push('GoToMyPC email is missing');
-    else if (!this.gpcEmailValid()) m.push('GoToMyPC email is not valid');
 
     if (this.gpcPassword().trim() === '') m.push('GoToMyPC password is missing');
     if (this.gpcAccessCode().trim() === '') m.push('GoToMyPC access code is missing');
@@ -179,7 +191,13 @@ export class IntakeForm implements OnDestroy {
     }
   });
 
-  readonly canSubmit = computed(() => this.missing().length === 0 && this.withinWindow());
+  readonly canSubmit = computed(
+    () =>
+      this.missing().length === 0 &&
+      isValidEmail(this.email()) &&
+      isValidEmail(this.gpcEmail()) &&
+      this.withinWindow(),
+  );
 
   private pushFileMissing(m: string[], f: File | null, label: string): void {
     if (!f) {
@@ -237,6 +255,9 @@ export class IntakeForm implements OnDestroy {
     ev.preventDefault();
     this.submitted.set(true);
     this.formTouched.set(true);
+    // Reveal any email errors immediately if the click ends up blocked.
+    this.emailTouched.set(true);
+    this.gpcEmailTouched.set(true);
 
     // Guard: never submit outside the window — surface the same timing message.
     const state = this.windowState();
@@ -294,6 +315,8 @@ export class IntakeForm implements OnDestroy {
     this.additionalDoc.set(null);
     this.submitted.set(false);
     this.formTouched.set(false);
+    this.emailTouched.set(false);
+    this.gpcEmailTouched.set(false);
     this.status.set('idle');
     this.statusMessage.set('');
   }

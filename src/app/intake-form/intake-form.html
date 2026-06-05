@@ -25,10 +25,11 @@
         <label for="email">Your email <span class="req">*</span></label>
         <input id="email" type="email" autocomplete="email" appTrim
                [value]="email()" (input)="setText(email, $event)"
-               [attr.aria-invalid]="submitted() && !emailValid()"
-               aria-describedby="email-err" />
-        @if (submitted() && !emailValid()) {
-          <p id="email-err" class="err">Enter a valid email address.</p>
+               (blur)="emailTouched.set(true)"
+               [attr.aria-invalid]="!!emailError()"
+               [attr.aria-describedby]="emailError() ? 'emailError' : null" />
+        @if (emailError()) {
+          <p class="field-error" id="emailError" role="alert">{{ emailError() }}</p>
         }
       </div>
 
@@ -57,8 +58,12 @@
           <label for="gpcEmail">Account email <span class="req">*</span></label>
           <input id="gpcEmail" type="email" autocomplete="off" appTrim
                  [value]="gpcEmail()" (input)="setText(gpcEmail, $event)"
-                 [attr.aria-invalid]="submitted() && !gpcEmailValid()" />
-          @if (submitted() && !gpcEmailValid()) { <p class="err">Enter a valid email address.</p> }
+                 (blur)="gpcEmailTouched.set(true)"
+                 [attr.aria-invalid]="!!gpcEmailError()"
+                 [attr.aria-describedby]="gpcEmailError() ? 'gpcEmailError' : null" />
+          @if (gpcEmailError()) {
+            <p class="field-error" id="gpcEmailError" role="alert">{{ gpcEmailError() }}</p>
+          }
         </div>
         <div class="field">
           <label for="gpcPassword">Password <span class="req">*</span></label>

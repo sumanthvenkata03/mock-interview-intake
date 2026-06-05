@@ -76,6 +76,8 @@ input[type='file'] { width: 100%; font-size: 0.95rem; }
 input[aria-invalid='true'] { border-color: #dc2626; }
 input.picker { cursor: pointer; }
 
+.field-error { color: #dc2626; font-size: 0.9rem; margin: 0.35rem 0 0; }
+
 .row { display: grid; grid-template-columns: 1fr; gap: 0 1rem; }
 @media (min-width: 520px) { .row { grid-template-columns: 1fr 1fr; } }
 
